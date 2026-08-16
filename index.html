@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>LipAI — Lições Fonoaudiológicas</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 680px; margin: 20px auto; padding: 20px; background: #f8fafc; color: #0f172a; }
+    .card { background: #ffffff; padding: 28px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; position: relative; }
+    
+    .nav-niveis { display: flex; gap: 8px; margin-bottom: 16px; }
+    .btn-nav { flex: 1; padding: 10px; border: 2px solid #cbd5e1; background: #fff; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+    .btn-nav.active { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
+
+    .seletor-alfabeto { display: grid; grid-template-columns: repeat(13, 1fr); gap: 4px; margin-bottom: 18px; padding: 12px; background: #f1f5f9; border-radius: 10px; border: 1px solid #e2e8f0; }
+    .btn-letra { padding: 6px 0; font-size: 13px; font-weight: 700; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 6px; cursor: pointer; transition: 0.15s; }
+    .btn-letra:hover { background: #e2e8f0; }
+    .btn-letra.active { background: #2563eb; color: #ffffff; border-color: #1d4ed8; }
+
+    .header-tags { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .tag { background: #e2e8f0; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+    .tag-blue { background: #dbeafe; color: #1e40af; }
+    
+    .btn-dica { background: #fef08a; border: 1.5px solid #eab308; color: #854d0e; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 800; cursor: pointer; display: none; }
+    .btn-dica:hover { background: #fde047; }
+
+    .progresso-container { margin: 16px 0; }
+    .progresso-bar { height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden; }
+    .progresso-fill { height: 100%; width: 0%; background: #2563eb; transition: width 0.3s; }
+
+    .display-texto { font-size: 38px; font-weight: 800; color: #1e3a8a; text-align: center; margin: 20px 0; letter-spacing: 2px; }
+    .instrucao { text-align: center; color: #64748b; font-size: 14px; min-height: 20px; margin-bottom: 20px; }
+    
+    .controles { display: flex; justify-content: center; gap: 10px; margin-bottom: 14px; }
+    .btn { padding: 12px 20px; border: none; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.2s; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-record { background: #ef4444; color: #fff; }
+    .btn-stop { background: #475569; color: #fff; }
+    .btn-prova { background: #8b5cf6; color: #fff; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status { text-align: center; font-size: 13px; color: #64748b; margin-top: 8px; }
+    .resultado { margin-top: 24px; padding: 20px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; }
+    .fonemas-container { display: flex; gap: 6px; justify-content: center; margin: 14px 0; }
+    .fonema-box { padding: 6px 12px; border-radius: 8px; font-weight: 800; font-size: 16px; text-align: center; }
+    .status-correto { background: #dcfce7; color: #15803d; border: 1.5px solid #86efac; }
+    .status-atencao { background: #fef9c3; color: #854d0e; border: 1.5px solid #fde047; }
+    .status-incorreto { background: #fee2e2; color: #b91c1c; border: 1.5px solid #fca5a5; }
+    .feedback-box { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px; border-radius: 6px; margin: 14px 0; font-size: 14px; line-height: 1.4; }
+
+    .modal-dica { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
+    .modal-content { background: #fff; padding: 24px; border-radius: 16px; max-width: 500px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .modal-close { font-size: 20px; font-weight: bold; cursor: pointer; border: none; background: none; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2 style="margin-top: 0; text-align: center;">LipAI — Sessões de Treinamento</h2>
+
+  <!-- NÍVEIS -->
+  <div class="nav-niveis">
+    <button class="btn-nav active" id="btn-nav-1" onclick="forcarNivel(1)">Nível 1 (Sílabas)</button>
+    <button class="btn-nav" id="btn-nav-2" onclick="forcarNivel(2)">Nível 2 (Junção)</button>
+    <button class="btn-nav" id="btn-nav-3" onclick="forcarNivel(3)">Nível 3 (Palavras/Frases)</button>
+    <button class="btn-nav" id="btn-nav-4" onclick="forcarNivel(4)">Nível 4 (Complexo)</button>
+  </div>
+
+  <!-- BOTÕES DE FONEMAS A-Z -->
+  <div class="seletor-alfabeto" id="grade-alfabeto"></div>
+
+  <div class="header-tags">
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <span class="tag tag-blue" id="tag-fonema">Fonema: A</span>
+      <span class="tag tag-blue" id="tag-nivel">Nível: 1</span>
+      <button class="btn-dica" id="btn-abrir-dica" onclick="abrirModalDica()">💡 Como pronunciar?</button>
+    </div>
+    <span class="tag" id="tag-progresso">Atividade: 1/10</span>
+  </div>
+
+  <div class="progresso-container">
+    <div class="progresso-bar"><div class="progresso-fill" id="barra-progresso"></div></div>
+  </div>
+
+  <div class="display-texto" id="texto-alvo">Selecione uma lição</div>
+  <p class="instrucao" id="instrucao">Pronto para começar a lição de 10 atividades.</p>
+
+  <div class="controles">
+    <button class="btn btn-primary" id="btn-iniciar" onclick="buscarExercicio(false)">Iniciar Lição</button>
+    <button class="btn btn-prova" id="btn-prova" onclick="buscarExercicio(true)">Fazer Prova de Salto 🏆</button>
+    <button class="btn btn-record" id="btn-gravar" onclick="iniciarGravacao()" disabled>Gravar Fala</button>
+    <button class="btn btn-stop" id="btn-parar" onclick="pararGravacao()" disabled>Parar e Avaliar</button>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="resultado" id="painel-resultado" style="display: none;">
+    <h3 style="margin-top: 0;">Resultado Acústico (GOP)</h3>
+    <p><strong>Acurácia Desta Atividade:</strong> <span id="res-score" style="font-size: 18px; font-weight: bold; color: #2563eb;"></span>%</p>
+    
+    <div><strong>Análise Fonética:</strong></div>
+    <div class="fonemas-container" id="container-fonemas"></div>
+
+    <div class="feedback-box">
+      <strong>Feedback do Fonoaudiólogo:</strong>
+      <div id="res-feedback" style="margin-top: 6px;"></div>
+    </div>
+
+    <div style="font-size: 14px; font-weight: bold; color: #1e3a8a;" id="res-decisao"></div>
+    <button class="btn btn-primary" style="width: 100%; margin-top: 14px;" id="btn-proximo" onclick="buscarExercicio(false)">Próxima Atividade ➔</button>
+  </div>
+</div>
+
+<div class="modal-dica" id="modal-dica">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 style="margin:0; color:#1e3a8a;" id="modal-titulo">Dica de Articulação</h3>
+      <button class="modal-close" onclick="fecharModalDica()">&times;</button>
+    </div>
+    <p id="modal-corpo" style="font-size: 14px; line-height: 1.6; color: #334155; white-space: pre-line;"></p>
+  </div>
+</div>
+
+<script>
+  const API_LLM = "http://127.0.0.1:8001";
+  const USUARIO_ID = 1;
+  const ALFABETO = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"];
+  
+  let audioContext;
+  let mediaStream;
+  let recProcessor;
+  let audioBuffers = [];
+  let textoAtual = "";
+  let emModoProva = false;
+  let nivelAtual = 1;
+  let fonemaAtual = "A";
+
+  function renderizarBotoesAlfabeto() {
+    const container = document.getElementById("grade-alfabeto");
+    container.innerHTML = "";
+    ALFABETO.forEach(letra => {
+      const btn = document.createElement("button");
+      btn.className = `btn-letra ${letra === fonemaAtual ? "active" : ""}`;
+      btn.id = `btn-letra-${letra}`;
+      btn.innerText = letra;
+      btn.onclick = () => selecionarLetraDireta(letra);
+      container.appendChild(btn);
+    });
+  }
+
+  async function selecionarLetraDireta(letra) {
+    fonemaAtual = letra;
+    await forcarNivel(1, letra);
+  }
+
+  async function forcarNivel(nivelEscolhido, letraEscolhida = null) {
+    nivelAtual = nivelEscolhido;
+    const letra = letraEscolhida || fonemaAtual;
+    try {
+      await fetch(`${API_LLM}/treino/selecionar-nivel/${USUARIO_ID}?nivel=${nivelEscolhido}&fonema=${letra}`, { method: "POST" });
+      atualizarBotoesNavegacao(nivelEscolhido, letra);
+      buscarExercicio(false);
+    } catch (e) {
+      alert("Erro ao alternar fonema/nível.");
+    }
+  }
+
+  function atualizarBotoesNavegacao(nivel, letra = fonemaAtual) {
+    nivelAtual = nivel;
+    fonemaAtual = letra;
+
+    for (let i = 1; i <= 4; i++) {
+      document.getElementById(`btn-nav-${i}`).classList.remove("active");
+    }
+    document.getElementById(`btn-nav-${nivel}`).classList.add("active");
+
+    const grade = document.getElementById("grade-alfabeto");
+    grade.style.display = (nivel === 1) ? "grid" : "none";
+
+    ALFABETO.forEach(l => {
+      const el = document.getElementById(`btn-letra-${l}`);
+      if (el) el.classList.toggle("active", l === letra);
+    });
+
+    document.getElementById("btn-prova").style.display = (nivel === 4) ? "none" : "inline-block";
+    document.getElementById("btn-abrir-dica").style.display = (nivel <= 2) ? "inline-block" : "none";
+  }
+
+  async function abrirModalDica() {
+    try {
+      const res = await fetch(`${API_LLM}/treino/dica-fonema/${USUARIO_ID}`);
+      const data = await res.json();
+      document.getElementById("modal-titulo").innerText = `Dica de Pronúncia: Fonema ${data.fonema}`;
+      document.getElementById("modal-corpo").innerText = data.dica;
+      document.getElementById("modal-dica").style.display = "flex";
+    } catch (e) {
+      alert("Erro ao carregar dica.");
+    }
+  }
+
+  function fecharModalDica() {
+    document.getElementById("modal-dica").style.display = "none";
+  }
+
+  async function buscarExercicio(isProva = false) {
+    emModoProva = isProva;
+    document.getElementById("status").innerText = isProva ? "Carregando prova de salto..." : "Carregando próxima atividade da lição...";
+    document.getElementById("painel-resultado").style.display = "none";
+    
+    try {
+      const res = await fetch(`${API_LLM}/treino/proximo-exercicio/${USUARIO_ID}?prova=${isProva}`);
+      if (!res.ok) throw new Error(`Erro ${res.status}`);
+      const data = await res.json();
+      
+      textoAtual = data.texto_gerado;
+      fonemaAtual = data.fonema;
+      nivelAtual = data.nivel;
+
+      document.getElementById("texto-alvo").innerText = data.texto_gerado;
+      document.getElementById("tag-fonema").innerText = `Fonema: ${data.fonema}`;
+      document.getElementById("tag-nivel").innerText = `Nível: ${data.nivel}`;
+      
+      const passoExibicao = (data.passo_licao || 0) + 1;
+      document.getElementById("tag-progresso").innerText = `Atividade: ${passoExibicao}/10`;
+      document.getElementById("barra-progresso").style.width = `${(data.passo_licao / 10) * 100}%`;
+      document.getElementById("instrucao").innerText = data.instrucao;
+      
+      atualizarBotoesNavegacao(data.nivel, data.fonema);
+      document.getElementById("btn-gravar").disabled = false;
+      document.getElementById("status").innerText = "Pronto para gravar!";
+    } catch (e) {
+      document.getElementById("status").innerText = "Erro ao conectar com a API na porta 8001.";
+    }
+  }
+
+  async function iniciarGravacao() {
+    try {
+      audioBuffers = [];
+      audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      const input = audioContext.createMediaStreamSource(mediaStream);
+      recProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+
+      recProcessor.onaudioprocess = (e) => {
+        audioBuffers.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+      };
+
+      input.connect(recProcessor);
+      recProcessor.connect(audioContext.destination);
+
+      document.getElementById("btn-gravar").disabled = true;
+      document.getElementById("btn-parar").disabled = false;
+      document.getElementById("status").innerText = "Gravando... Fale claramente.";
+    } catch (err) {
+      document.getElementById("status").innerText = "Permissão de microfone negada.";
+    }
+  }
+
+  function pararGravacao() {
+    if (recProcessor) recProcessor.disconnect();
+    if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+    if (audioContext) audioContext.close();
+
+    document.getElementById("btn-parar").disabled = true;
+    document.getElementById("status").innerText = "Processando áudio via MMS e LLM...";
+    enviarAudio();
+  }
+
+  function exportarWAV(buffers) {
+    let totalLen = buffers.reduce((acc, b) => acc + b.length, 0);
+    let out = new Float32Array(totalLen);
+    let offset = 0;
+    for (let b of buffers) { out.set(b, offset); offset += b.length; }
+
+    let buf = new ArrayBuffer(44 + out.length * 2);
+    let view = new DataView(buf);
+    function s(idx, str) { for (let i = 0; i < str.length; i++) view.setUint8(idx + i, str.charCodeAt(i)); }
+
+    s(0, 'RIFF'); view.setUint32(4, 36 + out.length * 2, true); s(8, 'WAVE'); s(12, 'fmt ');
+    view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+    view.setUint32(24, 16000, true); view.setUint32(28, 32000, true); view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true); s(36, 'data'); view.setUint32(40, out.length * 2, true);
+
+    let idx = 44;
+    for (let i = 0; i < out.length; i++) {
+      let v = Math.max(-1, Math.min(1, out[i]));
+      view.setInt16(idx, v < 0 ? v * 0x8000 : v * 0x7FFF, true);
+      idx += 2;
+    }
+    return new Blob([view], { type: 'audio/wav' });
+  }
+
+  async function enviarAudio() {
+    const blob = exportarWAV(audioBuffers);
+    const fd = new FormData();
+    fd.append("usuario_id", USUARIO_ID);
+    fd.append("texto_esperado", textoAtual);
+    fd.append("modo_prova", emModoProva);
+    fd.append("arquivo", blob, "rec.wav");
+
+    try {
+      const res = await fetch(`${API_LLM}/treino/enviar-audio`, { method: "POST", body: fd });
+      const data = await res.json();
+      
+      const analise = data.analise_acustica;
+      const decisao = data.decisao_adaptativa;
+
+      document.getElementById("res-score").innerText = analise.score_geral;
+      document.getElementById("res-feedback").innerText = data.feedback_clinico;
+
+      const container = document.getElementById("container-fonemas");
+      container.innerHTML = "";
+      analise.detalhes_fonemas.forEach(f => {
+        const d = document.createElement("div");
+        d.className = `fonema-box status-${f.status}`;
+        d.innerHTML = `${f.caractere}<br><span style="font-size:10px;">${f.score}%</span>`;
+        container.appendChild(d);
+      });
+
+      if (decisao.licao_concluida) {
+        document.getElementById("res-decisao").innerText = decisao.mensagem;
+        document.getElementById("barra-progresso").style.width = "100%";
+        document.getElementById("btn-proximo").innerText = "Iniciar Próxima Lição ➔";
+        atualizarBotoesNavegacao(decisao.nivel_atual, decisao.fonema_atual);
+      } else {
+        document.getElementById("res-decisao").innerText = `Atividade ${decisao.passo_atual}/10 registrada.`;
+        document.getElementById("barra-progresso").style.width = `${(decisao.passo_atual / 10) * 100}%`;
+        document.getElementById("btn-proximo").innerText = "Próxima Atividade ➔";
+      }
+
+      document.getElementById("painel-resultado").style.display = "block";
+      document.getElementById("status").innerText = "Atividade avaliada.";
+    } catch (e) {
+      document.getElementById("status").innerText = "Erro ao enviar áudio.";
+    }
+  }
+
+  renderizarBotoesAlfabeto();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,36 @@
+# Ambientes virtuais
+venv/
+.venv/
+env/
+
+# Variáveis de ambiente / segredos
+.env
+.env.local
+
+# Banco vetorial local (gerado por criar_rag.py, não vai pro GitHub)
+chroma_db/
+
+# Banco de conteúdo gerado (gerado por extrator_conteudo.py a partir dos .docx)
+banco_conteudo.json
+
+# Áudios temporários gerados pelo app_mms.py durante a avaliação
+temp_*.wav
+*.wav
+
+# Cache de modelos baixados (Hugging Face / MMS / embeddings)
+.cache/
+*.bin
+*.safetensors
+
+# Arquivos temporários do Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Arquivos de configuração do VS Code ou sistema
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
