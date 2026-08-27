@@ -67,8 +67,6 @@ BANCO_CONTEUDO = carregar_banco_conteudo()
 
 
 def formatar_para_nivel(item: str, nivel: int) -> str:
-    """Só formata a apresentação do item (ex.: hífen no Nível 2).
-    O conteúdo em si sempre vem do banco_conteudo.json, nunca é inventado."""
     if nivel == 1:
         return f"{item} {item}"
     if nivel == 2 and _HIFENIZADOR:
@@ -92,7 +90,6 @@ async def chamar_mms_gop(texto_esperado: str, arquivo: UploadFile):
         raise HTTPException(status_code=500, detail=f"Erro de conexão com MMS: {str(e)}")
 
 
-# --- SELEÇÃO DIRETA DE FONEMA / NÍVEL ------
 @app.post("/treino/selecionar-nivel/{usuario_id}")
 def selecionar_nivel_manual(usuario_id: int, nivel: int = Query(..., ge=1, le=4), fonema: str = Query("A")):
     if usuario_id not in USUARIOS_DB:
@@ -103,12 +100,9 @@ def selecionar_nivel_manual(usuario_id: int, nivel: int = Query(..., ge=1, le=4)
     usuario["fonema_atual"] = fonema.upper()
     usuario["passo_licao"] = 0
     usuario["scores_licao"] = []
-    # "cursores" NÃO é resetado aqui de propósito: se o usuário voltar depois
-    # pra essa mesma letra/nível, retoma de onde parou em vez de repetir do zero.
     return {"status": "sucesso", "usuario": usuario}
 
 
-# --- DICA FONOAUDIOLÓGICA ---
 @app.get("/treino/dica-fonema/{usuario_id}")
 async def obter_dica_fonema(usuario_id: int):
     usuario = USUARIOS_DB.get(usuario_id, {"fonema_atual": "A"})
@@ -126,7 +120,6 @@ async def obter_dica_fonema(usuario_id: int):
     return {"fonema": fonema, "dica": contexto_dica}
 
 
-# --- GERADOR DE EXERCÍCIO DA LIÇÃO (100% determinístico, sem RAG/LLM) ---
 @app.get("/treino/proximo-exercicio/{usuario_id}")
 async def obter_proximo_exercicio(usuario_id: int, prova: bool = False):
     if usuario_id not in USUARIOS_DB:
@@ -174,7 +167,6 @@ async def obter_proximo_exercicio(usuario_id: int, prova: bool = False):
     }
 
 
-# --- AVALIAÇÃO DE ÁUDIO ---
 @app.post("/treino/enviar-audio")
 async def enviar_audio_treino(
     usuario_id: int = Form(...),
@@ -187,15 +179,12 @@ async def enviar_audio_treino(
 
     usuario = USUARIOS_DB[usuario_id]
 
-    # 1. Avaliação acústica MMS
     resultado_mms = await chamar_mms_gop(texto_esperado=texto_esperado, arquivo=arquivo)
     score_geral = resultado_mms.get("score_geral", 0.0)
     detalhes_fonemas = resultado_mms.get("detalhes_fonemas", [])
 
-    # 2. Processa na Engine de Lição (10 passos) — decide próximo fonema/nível
     decisao = engine_adaptativa.processar_tentativa_licao(usuario, score_geral, modo_prova=modo_prova)
 
-    # 3. Feedback da LLM (aqui o LLM continua útil: é geração de texto livre, não currículo)
     fonemas_com_erro = [f["caractere"] for f in detalhes_fonemas if f["status"] != "correto"]
     resumo_erros = ", ".join(fonemas_com_erro) if fonemas_com_erro else "Nenhum"
 

@@ -8,7 +8,7 @@ PASTA_DADOS = "./Dados"
 SAIDA_JSON = "./banco_conteudo.json"
 
 MARCADORES = [
-    ("nivel1", r"N[íi]vel\s*1\s*Vogais e Sons"),
+    ("nivel1", r"N[íi]vel\s*1\b"),
     ("nivel2", r"Palavras\s*N[íi]vel\s*2"),
     ("nivel3_palavras", r"Palavras\s*N[íi]vel\s*3"),
     ("nivel3_frases", r"Frases\s*e\s*Express(?:õ|o)es\s*Curtas"),
@@ -17,8 +17,6 @@ MARCADORES = [
 ]
 
 CABECALHOS = {
-    "nivel1a": r"^N[íi]vel\s*1\s*Vogais e Sons\s*\([^)]*\)\s*:\s*",
-    "nivel1b": r"^Encontros Vocálicos e Ditongos:?\s*",
     "nivel2": r"^Palavras\s*N[íi]vel\s*2\s*\([^)]*\)\s*",
     "nivel3_palavras": r"^Palavras\s*N[íi]vel\s*3\s*\([^)]*\)\s*",
     "nivel3_frases": r"^Frases\s*e\s*Express(?:õ|o)es\s*Curtas\s*",
@@ -32,23 +30,39 @@ def _remover_cabecalho(texto: str, chave: str) -> str:
 
 
 def limpar_lista(texto: str, chave: str) -> list:
-    """Para blocos separados por vírgula (sílabas e palavras soltas)."""
     texto = _remover_cabecalho(texto, chave)
     itens = [i.strip(" .") for i in re.split(r",", texto)]
     return [i for i in itens if i]
 
 
 def limpar_frases(texto: str, chave: str) -> list:
-    """Para blocos de frases/sentenças separadas por ponto final."""
     texto = _remover_cabecalho(texto, chave)
     frases = [f.strip(" .") for f in re.split(r"\.\s+", texto) if f.strip(" .")]
     return frases
 
 
 def limpar_vocabulario(texto: str, chave: str) -> list:
-    """Para a lista final de vocabulário avançado (palavras separadas por espaço)."""
     texto = _remover_cabecalho(texto, chave)
     return [p.strip(" .") for p in texto.split() if p.strip(" .")]
+
+
+def limpar_nivel1(bloco: str) -> list:
+    texto = re.sub(r"^N[íi]vel\s*1\b\s*", "", bloco.strip(), flags=re.IGNORECASE)
+
+    itens = []
+    vistos = set()
+    for segmento in texto.split(":"):
+        for tok in re.split(r"[,\s]+", segmento.strip()):
+            tok = tok.strip(" .()")
+            if not tok:
+                continue
+            if re.search(r"[a-zà-ÿ]", tok):
+                break
+            if tok not in vistos:
+                itens.append(tok)
+                vistos.add(tok)
+
+    return itens
 
 
 def extrair_secoes(texto_completo: str) -> dict:
@@ -72,13 +86,7 @@ def extrair_secoes(texto_completo: str) -> dict:
     }
 
     if "nivel1" in blocos:
-        bloco = blocos["nivel1"]
-        partes = re.split(r"(?=Encontros Vocálicos e Ditongos:?)", bloco, flags=re.IGNORECASE)
-        if len(partes) >= 1:
-            secoes["nivel1"].extend(limpar_lista(partes[0], "nivel1a"))
-        if len(partes) >= 2:
-            secoes["nivel1"].extend(limpar_lista(partes[1], "nivel1b"))
-        secoes["nivel1"] = list(dict.fromkeys(secoes["nivel1"]))  # remove duplicados, mantém ordem
+        secoes["nivel1"] = limpar_nivel1(blocos["nivel1"])
 
     if "nivel2" in blocos:
         secoes["nivel2"] = limpar_lista(blocos["nivel2"], "nivel2")

@@ -17,8 +17,8 @@ python criar_rag.py
 
 Em terminais separados:
 
-uvicorn app_mms.py:app --reload
+uvicorn app_mms:app --reload --port 8000
 
 
 
-uvicorn app_llm.py:app --reload
+uvicorn app_llm:app --reload --port 8001
