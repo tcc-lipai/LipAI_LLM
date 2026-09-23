@@ -8,6 +8,7 @@ from fastapi.concurrency import run_in_threadpool
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_ollama import OllamaLLM
+from langchain_groq import ChatGroq
 
 from adaptive_engine import engine_adaptativa
 
@@ -32,7 +33,12 @@ CAMINHO_BANCO_CONTEUDO = "./banco_conteudo.json"
 
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 db = Chroma(persist_directory=PASTA_CHROMA, embedding_function=embeddings)
-modelo_llm = OllamaLLM(model="qwen2.5:3b", temperature=0.0, num_predict=60)
+
+modelo_llm = ChatGroq(
+    model_name="qwen-2.5-3b-instruct", # ou llama-3.1-8b-instant
+    temperature=0.0,
+    groq_api_key=os.getenv("GROQ_API_KEY")
+)
 
 MMS_API_URL = os.getenv("MMS_API_URL", "http://127.0.0.1:8000/avaliar-fala-alinhada/")
 
