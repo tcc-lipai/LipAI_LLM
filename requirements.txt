@@ -24,7 +24,7 @@ decorator==5.3.1
 distro==1.9.0
 docx2txt==0.9
 durationpy==0.10
-faiss-cpu==1.7.4
+faiss-cpu
 fastapi==0.136.3
 filelock==3.25.2
 Flask==3.0.3
