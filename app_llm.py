@@ -37,7 +37,7 @@ db = Chroma(persist_directory=PASTA_CHROMA, embedding_function=embeddings)
 modelo_llm = ChatGroq(
     model_name="qwen-2.5-3b-instruct", # ou llama-3.1-8b-instant
     temperature=0.0,
-    groq_api_key=os.getenv("GROQ_API_KEY")
+    groq_api_key=os.getenv("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")
 )
 
 MMS_API_URL = os.getenv("MMS_API_URL", "http://127.0.0.1:8000/avaliar-fala-alinhada/")
