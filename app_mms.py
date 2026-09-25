@@ -2,7 +2,6 @@ import math
 import os
 import re
 import tempfile
-import unicodedata
 import uuid
 
 import av
@@ -92,9 +91,14 @@ def carregar_audio_16k(caminho_arquivo: str):
 
 
 def _normalizar_texto_alvo(texto_alvo: str) -> str:
-    texto_sem_acento = unicodedata.normalize("NFKD", texto_alvo)
-    texto_sem_acento = "".join(c for c in texto_sem_acento if not unicodedata.combining(c))
-    return re.sub(r"[^a-zA-Z\s]", "", texto_sem_acento.lower()).strip()
+    # O tokenizer do adaptador "por" tem tokens próprios para acentos/cedilha
+    # (á, â, ã, ç, é, ê, í, ó, ô, õ, ú, ...) — são fonemas diferentes das
+    # letras simples (ex.: "ç" soa /s/, não /k/). Remover esses caracteres
+    # antes do forced-align faz o alinhamento comparar o áudio com a
+    # ortografia errada, derrubando a nota mesmo com pronúncia correta.
+    # Por isso aqui só tiramos o que o tokenizer realmente não reconhece
+    # (números, pontuação), sem mexer nos acentos.
+    return re.sub(r"[^a-zàáâãçéêëíòóôõúü\s]", "", texto_alvo.lower()).strip()
 
 
 def avaliar_pronuncia_gop(caminho_arquivo: str, texto_alvo: str):
