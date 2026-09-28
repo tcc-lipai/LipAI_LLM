@@ -103,6 +103,42 @@ def _normalizar_texto_alvo(texto_alvo: str) -> str:
     return re.sub(r"[^a-zàáâãçéêëíòóôõúü\s]", "", texto_alvo.lower()).strip()
 
 
+def _normalizar_palavra_fonetica_br(palavra: str) -> str:
+    """
+    Aplica pra uma palavra as mudanças de som regulares e sistemáticas da
+    fala natural do português brasileiro, que a ortografia não mostra:
+
+    - vogal átona final: "o" -> "u" (ex.: "gato" soa "gatu")
+    - vogal átona final: "e" -> "i" (ex.: "leite" soa "leiti")
+    - "l" no final da palavra -> "u", vocalização do L (ex.: "ágil" soa "águiu")
+    - "r" no final da palavra some/aspira (ex.: "agir" soa "agi")
+    - "t"/"d" antes de "i" palatalizam pra "tch"/"dj" (ex.: "tia" soa "tchia",
+      e "leiti" -- já convertido acima -- vira "leitchi")
+    """
+    if not palavra:
+        return palavra
+
+    if palavra.endswith("o"):
+        palavra = palavra[:-1] + "u"
+    elif palavra.endswith("e"):
+        palavra = palavra[:-1] + "i"
+
+    if palavra.endswith("l"):
+        palavra = palavra[:-1] + "u"
+
+    if palavra.endswith("r"):
+        palavra = palavra[:-1]
+
+    palavra = re.sub(r"t(?=i)", "tch", palavra)
+    palavra = re.sub(r"d(?=i)", "dj", palavra)
+
+    return palavra
+
+
+def _normalizar_fonetica_br(texto: str) -> str:
+    return " ".join(_normalizar_palavra_fonetica_br(p) for p in texto.split())
+
+
 def calcular_score_texto(ouvido: str, alvo: str) -> float:
     """
     Reproduz o método de pontuação usado no teste de comparação no Colab:
@@ -112,11 +148,15 @@ def calcular_score_texto(ouvido: str, alvo: str) -> float:
     nota se um só fonema tiver confiança baixa), essa métrica é mais
     tolerante -- é mais sobre "o que saiu bate com o esperado?" do que
     "o modelo tem certeza de cada som esperado, na ordem certa?".
+
+    Antes de comparar, os dois lados passam por _normalizar_fonetica_br --
+    sem isso, pronúncia 100% natural e correta de brasileiro (tipo "ágil"
+    soando "águiu") perderia nota só por não bater com a grafia literal.
     """
     if not ouvido:
         return 0.0
-    ouvido = ouvido.lower().strip().replace(".", "")
-    alvo = alvo.lower().strip()
+    ouvido = _normalizar_fonetica_br(ouvido.lower().strip().replace(".", ""))
+    alvo = _normalizar_fonetica_br(alvo.lower().strip())
     sim_escrita = SequenceMatcher(None, ouvido, alvo).ratio() * 100
     sim_fonetica = (
         SequenceMatcher(None, phonetics.metaphone(ouvido), phonetics.metaphone(alvo)).ratio()
