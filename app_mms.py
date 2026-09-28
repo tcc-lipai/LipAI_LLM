@@ -3,9 +3,11 @@ import os
 import re
 import tempfile
 import uuid
+from difflib import SequenceMatcher
 
 import av
 import numpy as np
+import phonetics
 import soundfile as sf
 import torch
 import torchaudio
@@ -101,6 +103,28 @@ def _normalizar_texto_alvo(texto_alvo: str) -> str:
     return re.sub(r"[^a-zàáâãçéêëíòóôõúü\s]", "", texto_alvo.lower()).strip()
 
 
+def calcular_score_texto(ouvido: str, alvo: str) -> float:
+    """
+    Reproduz o método de pontuação usado no teste de comparação no Colab:
+    mistura similaridade textual (SequenceMatcher) com similaridade
+    fonética (Metaphone), comparando a transcrição livre INTEIRA contra o
+    texto esperado INTEIRO. Diferente do GOP por caractere (que trava a
+    nota se um só fonema tiver confiança baixa), essa métrica é mais
+    tolerante -- é mais sobre "o que saiu bate com o esperado?" do que
+    "o modelo tem certeza de cada som esperado, na ordem certa?".
+    """
+    if not ouvido:
+        return 0.0
+    ouvido = ouvido.lower().strip().replace(".", "")
+    alvo = alvo.lower().strip()
+    sim_escrita = SequenceMatcher(None, ouvido, alvo).ratio() * 100
+    sim_fonetica = (
+        SequenceMatcher(None, phonetics.metaphone(ouvido), phonetics.metaphone(alvo)).ratio()
+        * 100
+    )
+    return (sim_escrita * 0.4) + (sim_fonetica * 0.6)
+
+
 def avaliar_pronuncia_gop(caminho_arquivo: str, texto_alvo: str):
     waveform = carregar_audio_16k(caminho_arquivo)
 
@@ -154,7 +178,11 @@ def avaliar_pronuncia_gop(caminho_arquivo: str, texto_alvo: str):
             "status": status
         })
 
-    score_geral = round(float(np.mean(scores_lista)), 2) if scores_lista else 0.0
+    # Nota geral no estilo do teste do Colab (texto transcrito x texto
+    # esperado INTEIROS), em vez da média das confianças por caractere do
+    # forced-align. O detalhamento por fonema abaixo continua vindo do
+    # forced-align, só a nota geral mudou de método.
+    score_geral = round(calcular_score_texto(texto_transcrito, texto_alvo), 2)
 
     return {
         "score_geral": score_geral,

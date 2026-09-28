@@ -91,6 +91,7 @@ opentelemetry-semantic-conventions==0.65b0
 orjson==3.11.7
 overrides==7.7.0
 packaging==26.2
+phonetics==1.0.5
 pillow==12.1.1
 platformdirs==4.9.6
 pooch==1.9.0
