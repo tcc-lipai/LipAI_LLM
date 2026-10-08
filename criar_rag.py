@@ -20,16 +20,22 @@ def inicializar_banco_vetorial():
         print(f" Erro: A pasta {PASTA_DADOS} não foi encontrada!")
         return
 
-    print(" Carregando os arquivos Dicas.docx de cada fonema...")
+    print(" Carregando os arquivos de dica de cada fonema...")
 
+    # aceita Dica.docx e Dicas.docx, em qualquer capitalização
     loader = DirectoryLoader(
-        PASTA_DADOS, glob="**/Dicas.docx", loader_cls=Docx2txtLoader, recursive=True
+        PASTA_DADOS,
+        glob="**/[Dd]ica*.docx",
+        loader_cls=Docx2txtLoader,
+        recursive=True,
     )
     documentos = loader.load()
 
     if not documentos:
-        print("Nenhum Dicas.docx encontrado dentro de Dados/fonema_X/.")
+        print("Nenhum arquivo de dica (Dica.docx / Dicas.docx) encontrado em Dados/fonema_X/.")
         return
+
+    documentos = [d for d in documentos if d.page_content.strip()]
 
     for doc in documentos:
         doc.metadata["fonema"] = extrair_fonema_do_caminho(doc.metadata.get("source", ""))
