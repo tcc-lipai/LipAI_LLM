@@ -419,3 +419,58 @@ def home():
         "banco_conteudo_carregado": len(BANCO_CONTEUDO) > 0,
         "letras_disponiveis": sorted(BANCO_CONTEUDO.keys()),
     }
+
+
+# --------------------------------------------------------------------------- #
+# Aquecimento no startup
+# --------------------------------------------------------------------------- #
+# A 1a avaliação depois de subir os serviços era muito lenta (o Ollama carrega o
+# modelo na memória e o MMS inicializa na 1a inferência) e o aluno ficava >1 min
+# esperando. Aqui fazemos essas duas chamadas "de mentira" em segundo plano, logo
+# que a API sobe, pra a 1a gravação de verdade já pegar tudo quente.
+def _aquecer_servicos():
+    import io
+    import wave
+
+    try:
+        llm = _obter_llm()
+        if llm is not None:
+            llm.invoke("Diga apenas: ok.")
+            print("[app_llm] Aquecimento: Ollama pronto.", flush=True)
+    except Exception as e:
+        print(f"[app_llm] Aquecimento do Ollama ignorado ({e}).", flush=True)
+
+    # o MMS costuma subir depois deste serviço: tenta por até ~3 min até ele responder
+    import time
+
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(16000)
+        w.writeframes(b"\x00\x00" * 16000)
+    audio = buffer.getvalue()
+
+    for _ in range(36):
+        try:
+            httpx.post(
+                MMS_API_URL,
+                data={"texto_esperado": "a"},
+                files={"arquivo": ("aquecimento.wav", audio, "audio/wav")},
+                timeout=MMS_TIMEOUT,
+            )
+            print("[app_llm] Aquecimento: MMS pronto.", flush=True)
+            return
+        except httpx.ConnectError:
+            time.sleep(5)
+        except Exception as e:
+            print(f"[app_llm] Aquecimento do MMS ignorado ({e}).", flush=True)
+            return
+    print("[app_llm] Aquecimento do MMS desistiu: MMS nao respondeu.", flush=True)
+
+
+@app.on_event("startup")
+async def _iniciar_aquecimento():
+    import threading
+
+    threading.Thread(target=_aquecer_servicos, daemon=True).start()
